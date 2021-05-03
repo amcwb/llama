@@ -74,7 +74,10 @@ class Renderer:
 
         content = self.run_postproc(content)
 
-        return self.template.render(content=content, **content.metadata)
+        return self.template.render(page={
+            "content": content,
+            **content.metadata
+        })
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} template={self.template} extension='{self.extension}' preproc={len(self.preprocessors)} postproc={len(self.postprocessors)}>"
@@ -100,7 +103,10 @@ class MetadataRenderer(Renderer):
 
         content = renderer.run_postproc(content)
 
-        return renderer.template.render(content=content, **metadata)
+        return renderer.template.render(page={
+            "content": content,
+            **metadata
+        })
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} extension='{self.extension}' renderers={self.renderers}>"

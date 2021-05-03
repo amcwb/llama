@@ -18,56 +18,46 @@
 import os
 import re
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
+from llama.components.handler import Handler
 from llama.components.renderer import Renderer
 
 
 class Llama:
-    def __init__(self, renderers: list = None):
-        self.renderers = []
-        
-        if renderers is not None:
-            for renderer in renderers:
-                self.set_renderer(*renderer)
+    def __init__(self, handlers: Dict[str, Tuple[Handler, str]] = None):
+        self.handlers = handlers or {}
 
-    def set_renderer(self, pred_or_ext: Union[str, Callable[[str], bool]], renderer: Renderer):
+    def set_handler(self, directory: str, handler: Handler, target: str):
         """
-        Set the renderer for either a filename check predicate or a file
-        extension
+        Set the handler for a directory
 
         Parameters
         ----------
-        pred_or_ext : str or callable
-            The extension or predicate
-        renderer : Renderer
-            The renderer to use
+        directory : str
+            The directory to handle
+        handler : Handler
+            The handler
+        target : str
+            Target sub-directory
         """
-        if isinstance(pred_or_ext, str):
-            extension = pred_or_ext
-            pred_or_ext = lambda filename: filename.endswith("." + extension)
+        self.handlers[directory] = (handler, target)
 
-        self.renderers.append([pred_or_ext, renderer])
-
-    def get_renderer(self, filename: str) -> Optional[Renderer]:
+    def get_handler(self, directory: str) -> Optional[Handler]:
         """
-        Get the renderer for a filename
+        Get the handler for a directory
 
         Parameters
         ----------
-        filename : str
-            The filename
+        directory : str
+            The directory
 
         Returns
         -------
-        Renderer
-            The renderer, or None if it doesn't exist
+        Handler
+            The handler, or None if it doesn't exist
         """
-        for pred, renderer in self.renderers:
-            if pred(filename):
-                return renderer
-
-        return None
+        return self.handlers.get(directory, None)
 
     def build(self, file_dir: str, target_dir: str, renderer: Renderer):
         """
@@ -99,35 +89,5 @@ class Llama:
         ignore_unknown : bool
             Whether to ignore unknown files
         """
-        for dir_path, dirnames, filenames in os.walk(source_dir):
-            for filename in filenames:
-                self.handle_file(filename, dir_path, target_dir)
-
-    def handle_file(self, filename: str, dir_path: str, target_dir: str, ignore_unknown: bool = False):
-        """
-        Build a file to the target directory using the appropriate renderer
-
-        Parameters
-        ----------
-        filename : str
-            The filename
-        dir_path : str
-            The directory this file is found in
-        target_dir : str
-            The target directory for this file
-        ignore_unknown : bool
-            Whether to ignore unknown extensions
-        """
-        name, ext = filename.split(".", 1)
-        source = Path(dir_path) / filename
-        target = Path(target_dir) / Path(dir_path).parent
-        renderer = self.get_renderer(filename)
-        if renderer:
-            target /= (name + "." + renderer.extension)
-
-            self.build(source, target, renderer)
-        elif not ignore_unknown:
-            target /= (name + "." + ext)
-
-            with open(target, "w+") as file:
-                file.write(open(source).read())
+        for directory, (handler, target) in self.handlers.items():
+            handler.build_from(Path(source_dir) / directory, Path(target_dir) / target)
