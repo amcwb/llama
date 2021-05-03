@@ -16,3 +16,4 @@ config:
     indir: static
     outdir: static
     active: true
+  llama-debug: true

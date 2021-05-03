@@ -10,7 +10,9 @@
 <body>
     {{ page.content }}
 
-    {{ site }}
-    <p>Title: {{ site.title }}</p>
+    {% if site.config["llama-debug"] == true %}
+        <h1>Site information:</h1>
+        <pre><code>{{ site }}</code></pre>
+    {% endif %}
 </body>
 </html>
