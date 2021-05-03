@@ -1,3 +1,4 @@
 markdown2
 python-liquid
 python-frontmatter
+pyyaml

@@ -5,9 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="static/pygments.css">
-    <title>{{ page.title }}</title>
+    <title>{{ page.title }} | {{ site.title }}</title>
 </head>
 <body>
     {{ page.content }}
+
+    {{ site }}
+    <p>Title: {{ site.title }}</p>
 </body>
 </html>

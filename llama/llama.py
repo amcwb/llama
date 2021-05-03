@@ -22,10 +22,12 @@ from typing import Callable, Dict, Optional, Tuple, Union
 
 from llama.components.handler import Handler
 from llama.components.renderer import Renderer
+from llama.site import Site
 
 
 class Llama:
-    def __init__(self, handlers: Dict[str, Tuple[Handler, str]] = None):
+    def __init__(self, site: Site, handlers: Dict[str, Tuple[Handler, str]] = None):
+        self.site = site
         self.handlers = handlers or {}
 
     def set_handler(self, directory: str, handler: Handler, target: str):
@@ -42,6 +44,7 @@ class Llama:
             Target sub-directory
         """
         self.handlers[directory] = (handler, target)
+        handler.set_site(self.site)
 
     def get_handler(self, directory: str) -> Optional[Handler]:
         """

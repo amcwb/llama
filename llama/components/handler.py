@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with llama.  If not, see <http://www.gnu.org/licenses/>.
 
+from llama.site import Site
 import os
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -24,6 +25,12 @@ from llama.components.renderer import Renderer
 
 
 class Handler:
+    def __init__(self) -> None:
+        self.site = None
+
+    def set_site(self, site: Site):
+       self.site = site 
+
     def build_from(self, source_dir: str, target_dir: str, ignore_unknown: bool = False):
         """
         Build from a source directory to a target directory
@@ -66,11 +73,18 @@ class StaticHandler(Handler):
 
 class PostHandler(Handler):
     def __init__(self, renderers: list = None):
+        super().__init__()
         self.renderers = []
 
         if renderers is not None:
             for renderer in renderers:
                 self.set_renderer(*renderer)
+
+    def set_site(self, site: Site):
+        super().set_site(site)
+
+        for _pred, renderer in self.renderers:
+            renderer.set_site(site)
 
     def set_renderer(self, pred_or_ext: Union[str, Callable[[str], bool]], renderer: Renderer):
         """
@@ -90,6 +104,7 @@ class PostHandler(Handler):
                 "." + extension)
 
         self.renderers.append([pred_or_ext, renderer])
+        renderer.set_site(self.site)
 
     def get_renderer(self, filename: str) -> Optional[Renderer]:
         """

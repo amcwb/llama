@@ -1,0 +1,18 @@
+title: My blog
+description: |
+  Welcome to my lovely blog!
+
+# Configuration
+config:
+  llama-posts:
+    indir: source/posts
+    outdir: "posts"
+    active: true
+  llama-pages:
+    indir: source/pages
+    outdir: "."
+    active: true
+  llama-static:
+    indir: static
+    outdir: static
+    active: true

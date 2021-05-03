@@ -16,9 +16,11 @@
 # along with llama.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Dict
+
 import frontmatter
 import markdown2
 from liquid.template import BoundTemplate
+from llama.site import Site
 
 
 class Renderer:
@@ -27,6 +29,10 @@ class Renderer:
         self.extension = extension
         self.preprocessors = preprocessors or []
         self.postprocessors = postprocessors or []
+        self.site = None
+    
+    def set_site(self, site: Site):
+        self.site = site
 
     def run_preproc(self, content: str) -> str:
         """
@@ -77,7 +83,7 @@ class Renderer:
         return self.template.render(page={
             "content": content,
             **content.metadata
-        })
+        }, site=self.site.to_dict())
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} template={self.template} extension='{self.extension}' preproc={len(self.preprocessors)} postproc={len(self.postprocessors)}>"
@@ -87,6 +93,14 @@ class MetadataRenderer(Renderer):
         self.extension = extension
         self.renderers = renderers
         self.default = default
+
+        self.site = None
+
+    def set_site(self, site: Site):
+        super().set_site(site)
+
+        for renderer in self.renderers.values():
+            renderer.set_site(self.site)
 
     def render(self, content: str, extras=["fenced-code-blocks", "metadata"]):
         # For metadata renderers, the metadata is extracted seperately
@@ -106,7 +120,7 @@ class MetadataRenderer(Renderer):
         return renderer.template.render(page={
             "content": content,
             **metadata
-        })
+        }, site=self.site.to_dict())
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} extension='{self.extension}' renderers={self.renderers}>"
