@@ -19,8 +19,6 @@ from llama.site import Site
 import os
 from pathlib import Path
 from typing import Callable, Optional, Union
-
-import _osx_support
 from llama.components.renderer import Renderer
 
 
@@ -65,10 +63,10 @@ class StaticHandler(Handler):
         for dir_path, dirnames, filenames in os.walk(source_dir):
             for filename in filenames:
                 source = Path(dir_path) / filename
-                target = Path(target_dir) / Path(*(Path(dir_path).parent).parts[2:]) / filename
+                target = Path(target_dir) / Path(source.parent).relative_to(source_dir) / filename
                 target.parent.mkdir(parents=True, exist_ok=True)
-                with open(target, "w+") as file:
-                    file.write(open(source).read())
+                with open(target, "wb+") as file:
+                    file.write(open(source, "rb").read())
 
 
 class PostHandler(Handler):
@@ -158,8 +156,9 @@ class PostHandler(Handler):
         """
         for dir_path, dirnames, filenames in os.walk(source_dir):
             for filename in filenames:
+                target = Path(target_dir) / Path(dir_path).relative_to(source_dir)
                 self.handle_file(filename, dir_path,
-                                 target_dir, ignore_unknown)
+                                 target, ignore_unknown)
 
     def handle_file(self, filename: str, dir_path: str, target_dir: str, ignore_unknown: bool = False):
         """

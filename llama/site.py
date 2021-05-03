@@ -4,6 +4,8 @@ from typing import Any, Dict, Union
 
 import yaml
 
+import llama
+
 
 class Page:
     def __init__(self, title: str, link: str) -> None:
@@ -24,7 +26,8 @@ class Site:
             "title": self.title,
             "description": self.description,
             "index": dict(self.index),
-            "config": self.config
+            "config": self.config,
+            "llama-version": llama.__version__
         }
 
     @classmethod

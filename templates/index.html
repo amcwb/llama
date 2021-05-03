@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,12 +8,19 @@
     <link rel="stylesheet" href="static/pygments.css">
     <title>{{ page.title }} | {{ site.title }}</title>
 </head>
+
 <body>
     {{ page.content }}
 
+    {% comment %}
     {% if site.config["llama-debug"] == true %}
-        <h1>Site information:</h1>
-        <pre><code>{{ site }}</code></pre>
+    <h1>Site information:</h1>
+    <pre><code>{{ site }}</code></pre>
     {% endif %}
+    {% endcomment %}
+
+    <p><img src="/static/img/logo.svg" width="30px" style="vertical-align: middle;"> Created with Llama
+        <code>{{ site['llama-version'] }}</code></p>
 </body>
+
 </html>
