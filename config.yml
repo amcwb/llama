@@ -27,7 +27,7 @@ config:
 
   # Base URL
   # This MUST include the trailing /, otherwise url joining will fail
-  llama-base-url: /
+  llama-base-url: https://starsflower.github.io/llama/
 
   # Build and source args
   llama-source: .
