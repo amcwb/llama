@@ -4,16 +4,31 @@ description: |
 
 # Configuration
 config:
+  # How to serve posts
   llama-posts:
     indir: source/posts
     outdir: "posts"
     active: true
+  
+  # How to serve standard pages
   llama-pages:
     indir: source/pages
     outdir: "."
     active: true
+  
+  # How to serve static files
   llama-static:
     indir: static
     outdir: static
     active: true
+  
+  # Lets parts of the code know debug is active
   llama-debug: true
+
+  # Base URL
+  # This MUST include the trailing /, otherwise url joining will fail
+  llama-base-url: /
+
+  # Build and source args
+  llama-source: .
+  llama-target: build/

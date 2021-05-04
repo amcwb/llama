@@ -5,21 +5,21 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="static/pygments.css">
+    <link rel="stylesheet" href="{{ 'pygments.css' | static }}">
     <title>{{ page.title }} | {{ site.title }}</title>
 </head>
 
 <body>
     {{ page.content }}
 
-    {% comment %}
-    {% if site.config["llama-debug"] == true %}
-    <h1>Site information:</h1>
-    <pre><code>{{ site }}</code></pre>
-    {% endif %}
-    {% endcomment %}
+    
+    <ul>
+    {% for page in site.index.posts %}
+        <li><a href="{{ page[1] }}">{{ page[0] }}</a></li>
+    {% endfor %}
+    </ul>
 
-    <p><img src="/static/img/logo.svg" width="30px" style="vertical-align: middle;"> Created with Llama
+    <p><img src="{{ 'img/logo.svg' | static }}" width="30px" style="vertical-align: middle;"> Created with Llama
         <code>{{ site['llama-version'] }}</code></p>
 </body>
 

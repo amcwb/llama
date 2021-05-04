@@ -92,5 +92,12 @@ class Llama:
         ignore_unknown : bool
             Whether to ignore unknown files
         """
+        targets = []
         for directory, (handler, target) in self.handlers.items():
-            handler.build_from(Path(source_dir) / directory, Path(target_dir) / target)
+            targets.append([Path(source_dir) / directory, Path(target_dir) / target, handler])
+        
+        def _get_priority(s):
+            return s[2].priority
+        
+        for source, target, handler in sorted(targets, key=_get_priority):
+            handler.build_from(source, target, ignore_unknown)

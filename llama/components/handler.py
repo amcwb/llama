@@ -15,16 +15,20 @@
 # You should have received a copy of the GNU General Public License
 # along with llama.  If not, see <http://www.gnu.org/licenses/>.
 
-from llama.site import Site
+import operator
 import os
 from pathlib import Path
 from typing import Callable, Optional, Union
+
+from frontmatter import Post
 from llama.components.renderer import Renderer
+from llama.site import Site
 
 
 class Handler:
-    def __init__(self) -> None:
+    def __init__(self, priority: int = 1) -> None:
         self.site = None
+        self.priority = priority
 
     def set_site(self, site: Site):
        self.site = site 
@@ -46,10 +50,10 @@ class Handler:
 
 
 class StaticHandler(Handler):
-    def __init__(self) -> None:
-        pass
+    def __init__(self, priority: int = 1) -> None:
+        super().__init__(priority=priority)
 
-    def build_from(self, source_dir: str, target_dir: str):
+    def build_from(self, source_dir: str, target_dir: str, _ignore_unknown: bool = False):
         """
         Build from a source directory to a target directory
 
@@ -70,13 +74,29 @@ class StaticHandler(Handler):
 
 
 class PostHandler(Handler):
-    def __init__(self, renderers: list = None):
-        super().__init__()
+    @staticmethod
+    def default_indexer(index: str):
+        def _default_indexer(site: Site, data: Post, target: str):
+            site.index[index].append([
+                data.metadata['title'], site.build_url(Path(target).relative_to(Path(site.config.get("llama-target"))))
+            ])
+        
+        return _default_indexer
+
+    def __init__(self, priority: int = 1, renderers: list = None, indexer = None):
+        super().__init__(priority=priority)
         self.renderers = []
 
         if renderers is not None:
             for renderer in renderers:
                 self.set_renderer(*renderer)
+        
+        if indexer is None:
+            self.indexer = lambda *_: None
+        elif isinstance(indexer, str):
+            self.indexer = PostHandler.default_indexer(indexer)
+        else:
+            self.indexer = indexer
 
     def set_site(self, site: Site):
         super().set_site(site)
@@ -124,14 +144,14 @@ class PostHandler(Handler):
 
         return None
 
-    def build(self, file_dir: str, target_dir: str, renderer: Renderer):
+    def build(self, data: Post, target_dir: str, renderer: Renderer):
         """
         Build a given file into the target directory using the given renderer
 
         Parameters
         ----------
-        file_dir : str
-            The source file path
+        data : frontmatter.Post
+            The source data
         target_dir : str
             The target directory
         renderer : Renderer
@@ -139,7 +159,7 @@ class PostHandler(Handler):
         """
         Path(target_dir).parent.mkdir(parents=True, exist_ok=True)
         with open(target_dir, "w+") as file:
-            file.write(renderer.render(open(file_dir).read()))
+            file.write(renderer.render(data))
 
     def build_from(self, source_dir: str, target_dir: str, ignore_unknown: bool = False):
         """
@@ -154,13 +174,20 @@ class PostHandler(Handler):
         ignore_unknown : bool
             Whether to ignore unknown files
         """
+        targets = []
         for dir_path, dirnames, filenames in os.walk(source_dir):
             for filename in filenames:
                 target = Path(target_dir) / Path(dir_path).relative_to(source_dir)
-                self.handle_file(filename, dir_path,
-                                 target, ignore_unknown)
+                targets.append([filename, dir_path, target, self.get_renderer(filename)])
+        
+        def _get_priority(s):
+            return s[3].priority
 
-    def handle_file(self, filename: str, dir_path: str, target_dir: str, ignore_unknown: bool = False):
+        for filename, dir_path, target, renderer in sorted(targets, key=_get_priority):
+            self.handle_file(filename, dir_path,
+                             target, renderer, ignore_unknown)
+
+    def handle_file(self, filename: str, dir_path: str, target_dir: str, renderer: Renderer, ignore_unknown: bool = False):
         """
         Build a file to the target directory using the appropriate renderer
 
@@ -172,17 +199,20 @@ class PostHandler(Handler):
             The directory this file is found in
         target_dir : str
             The target directory for this file
+        renderer : Renderer
+            Renderer to use
         ignore_unknown : bool
             Whether to ignore unknown extensions
         """
         name, ext = filename.split(".", 1)
         source = Path(dir_path) / filename
-        target = Path(target_dir) / Path(*(Path(dir_path).parent).parts[2:])
-        renderer = self.get_renderer(filename)
+        target = Path(target_dir)
 
         if renderer:
             target /= (name + "." + renderer.extension)
+            data = renderer.get_page_data(open(source).read())
 
-            self.build(source, target, renderer)
+            self.indexer(self.site, data, target)
+            self.build(data, target, renderer)
         elif not ignore_unknown:
             raise KeyError("Unknown file {}".format(source))

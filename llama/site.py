@@ -1,6 +1,7 @@
 from collections import defaultdict
-from pathlib import Path
-from typing import Any, Dict, Union
+from pathlib import Path, PurePosixPath
+from typing import Any, Dict, Optional, Union
+import urllib
 
 import yaml
 
@@ -39,3 +40,35 @@ class Site:
                 description=data.get("description", None),
                 config=data.get("config", {})
             )
+
+    @property
+    def base_url(self) -> str:
+        return self.config.get("llama-base-url", "/")
+
+    @property
+    def posts_url(self) -> Optional[str]:
+        posts_config = self.config.get("llama-posts")
+        if posts_config and posts_config.get("active", True):
+            return posts_config.get("outdir", ".")
+        
+        return None
+    
+    @property
+    def static_url(self) -> Optional[str]:
+        static_config = self.config.get("llama-static")
+        if static_config and static_config.get("active", True):
+            return static_config.get("outdir", ".")
+        
+        return None
+
+    @property
+    def pages_url(self) -> Optional[str]:
+        pages_config = self.config.get("llama-posts")
+        if pages_config and pages_config.get("active", True):
+            return pages_config.get("outdir", ".")
+        
+        return None
+
+    def build_url(self, *parts):
+        return urllib.parse.urljoin(self.base_url, str(PurePosixPath(*parts)))
+        
