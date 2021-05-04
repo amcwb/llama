@@ -46,7 +46,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -54,6 +54,12 @@
      inkscape:label="Calque 1"
      inkscape:groupmode="layer"
      id="layer1">
+    <circle
+       style="fill:#ffffff;stroke-width:0.280908"
+       id="path831"
+       cx="94.305"
+       cy="94.305"
+       r="94.305" />
     <path
        id="path890"
        style="fill:#010101;stroke:none;stroke-width:0.264583"
