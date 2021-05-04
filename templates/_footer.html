@@ -1,0 +1,51 @@
+<!--
+ Copyright (C) 2021 Avery
+ 
+ This file is part of llama.
+ 
+ llama is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ llama is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with llama.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<style>
+.notice-container {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notice {
+    position: relative;
+    padding: 20px;
+    margin: 0 0 16px 0;
+    min-height: initial;
+    width: fit-content;
+}
+
+.notice > p {
+    margin: 0;
+}
+</style>
+
+<div class="notice-container">
+    <div class="notice">
+        <p>
+            <img src="{{ 'img/logo.svg' | static }}" width="40px" style="vertical-align: middle; padding-right: 10px;">
+            Created with Llama
+            <code>{{ site['llama-version'] }} (built at {{ "now" | date: site.config.dateformat }})</code>
+        </p>
+    </div>
+</div>

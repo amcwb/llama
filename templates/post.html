@@ -8,15 +8,42 @@
     <meta name="title" content="{{ page.title }}">
     <meta name="description" content="{{ page.description }}">
     <link rel="stylesheet" href="{{ 'pygments.css' | static }}">
+    
+    {% include '_theme.html' %}
     <title>{{ page.title }} | {{ site.title }}</title>
 </head>
 
 <body>
-    <h1>{{ page.title }} at {{ page.time }}</h1>
-    {{ page.content }}
+    {% include '_nav.html' %}
 
-    <p><img src="{{ 'img/logo.svg' | static }}" width="30px" style="vertical-align: middle;"> Created with Llama
-        <code>{{ site['llama-version'] }}</code></p>
+    <div class="content">
+        <h1>{{ page.title }} <small>{{ page.time | date: site.config.dateformat }}</small></h1>
+        
+        
+        <div>{{ page.content }}</div>
+
+        <ul class="pagination no-bullets">
+            {% if page.previous %}
+            <li class="pagination-item pagination-prev">
+                <a href="{{ page.previous.url }}" class="display-block">
+                    <p class="pagination-item-subtitle">Previous</p>
+                    <h5 class="u-no-margin">{{ page.previous.title }}</h5>
+                </a>
+            </li>
+            {% endif %}
+            {% if page.next %}
+            <li class="pagination-item pagination-next">
+                <a href="{{ page.next.url }}" class="display-block">
+                    <p class="pagination-item-subtitle">Next</p>
+                    <h5 class="u-no-margin">{{ page.next.title }}</h5>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    
+    {% include '_footer.html' %}
 </body>
 
 </html>

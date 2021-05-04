@@ -1,0 +1,8 @@
+<div class="tab-container tabs-depth tabs-fill">
+    <ul>
+        {% assign sections = site.config['llama-links'] %}
+        {% for section in sections %}
+        <li><a href="{{ section.link | base }}">{{ section.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>

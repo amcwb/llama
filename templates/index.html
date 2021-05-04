@@ -7,20 +7,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ 'pygments.css' | static }}">
     <title>{{ page.title }} | {{ site.title }}</title>
+    {% include '_theme.html' %}
+
 </head>
 
 <body>
-    {{ page.content }}
+    {% include '_nav.html' %}
 
-    
-    <ul>
-    {% for page in site.index.posts %}
-        <li><a href="{{ page[1] }}">{{ page[0] }}</a></li>
-    {% endfor %}
-    </ul>
+    <section class="content">
+        <div class="panel">
+            <h1>{{ site.title }}</h1>
+            {{ page.content }}
+        </div>
+        <div class="panel">
+            <h2>Posts</h2>
+            {% for post in site.index.posts %}
+            <div class="tile tile--center">
+                <!-- <div class="tile__icon">
+                    <figure class="avatar">
+                        <img src="https://www.seoclerk.com/pics/319222-1IvI0s1421931178.png">
+                    </figure>
+                </div> -->
+                <div class="tile__container">
+                    <p class="tile__title u-no-margin">{{ post.title }}</p>
+                    <p class="tile__subtitle u-no-margin">{{ post.description }}</p>
+                    <span class="info">{{ post.time | date: site.config.dateformat }}</span>
+                    {% if post.tags %}
+                    <div class="tag-container">
+                        {% for tag in post.tags %}
+                            <div class="tag">{{ tag }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="tile__buttons">
+                    <a href="{{ post.url }}" class="btn-info uppercase">View</a>
+                </div>
+            </div>
+            <div class="divider"></div>
+            {% endfor %}
+        </div>
+    </section>
 
-    <p><img src="{{ 'img/logo.svg' | static }}" width="30px" style="vertical-align: middle;"> Created with Llama
-        <code>{{ site['llama-version'] }}</code></p>
+    {% include '_footer.html' %}
 </body>
 
 </html>

@@ -28,7 +28,8 @@ class Site:
             "description": self.description,
             "index": dict(self.index),
             "config": self.config,
-            "llama-version": llama.__version__
+            "llama-version": llama.__version__,
+            "base-url": self.base_url
         }
 
     @classmethod

@@ -1,3 +1,4 @@
+from llama.features.postproc import sort_posts
 from llama.site import Site
 import urllib
 from pathlib import Path, PurePosixPath
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     ll = Llama(site=Site.load_from_yaml("config.yml"))
     
     env = Environment(loader=FileSystemLoader("templates/"))
+    
     base_factory = get_base_factory(ll.site.base_url)
     env.add_filter("base", base_factory)
     env.add_filter("static", get_static_factory(base_factory))
@@ -40,7 +42,7 @@ if __name__ == "__main__":
             "post": Renderer("html", env.get_template("post.html"))
         }, default="post")
 
-        post_handler = PostHandler(priority=0, indexer="posts")
+        post_handler = PostHandler(priority=0, indexer="posts", postprocessors=[sort_posts("posts")])
         post_handler.set_renderer("md", metadata_renderer)
         ll.set_handler(
             post_config.get("indir", "source/posts"),

@@ -77,15 +77,18 @@ class PostHandler(Handler):
     @staticmethod
     def default_indexer(index: str):
         def _default_indexer(site: Site, data: Post, target: str):
-            site.index[index].append([
-                data.metadata['title'], site.build_url(Path(target).relative_to(Path(site.config.get("llama-target"))))
-            ])
+            site.index[index].append({
+                "url": site.build_url(Path(target).relative_to(Path(site.config.get("llama-target")))),
+                **data.to_dict()
+            })
         
         return _default_indexer
 
-    def __init__(self, priority: int = 1, renderers: list = None, indexer = None):
+    def __init__(self, priority: int = 1, renderers: list = None, indexer = None, preprocessors=None, postprocessors=None):
         super().__init__(priority=priority)
         self.renderers = []
+        self.preprocessors = preprocessors or []
+        self.postprocessors = postprocessors or []
 
         if renderers is not None:
             for renderer in renderers:
@@ -97,6 +100,21 @@ class PostHandler(Handler):
             self.indexer = PostHandler.default_indexer(indexer)
         else:
             self.indexer = indexer
+
+    
+    def run_preproc(self) -> str:
+        """
+        Run preprocessing code on the handler.
+        """
+        for preproc in self.preprocessors:
+            preproc(self)
+
+    def run_postproc(self) -> str:
+        """
+        Run postprocessing code on the handler.
+        """
+        for postproc in self.postprocessors:
+            postproc(self)
 
     def set_site(self, site: Site):
         super().set_site(site)
@@ -174,6 +192,8 @@ class PostHandler(Handler):
         ignore_unknown : bool
             Whether to ignore unknown files
         """
+        self.run_preproc()
+
         targets = []
         for dir_path, dirnames, filenames in os.walk(source_dir):
             for filename in filenames:
@@ -186,6 +206,8 @@ class PostHandler(Handler):
         for filename, dir_path, target, renderer in sorted(targets, key=_get_priority):
             self.handle_file(filename, dir_path,
                              target, renderer, ignore_unknown)
+
+        self.run_postproc()
 
     def handle_file(self, filename: str, dir_path: str, target_dir: str, renderer: Renderer, ignore_unknown: bool = False):
         """

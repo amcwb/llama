@@ -32,3 +32,11 @@ config:
   # Build and source args
   llama-source: .
   llama-target: build/
+
+  llama-links:
+    - name: "Home"
+      link: /
+    - name: "Posts"
+      link: posts
+
+  dateformat: "%Y-%m-%d %H:%M"

@@ -1,5 +1,6 @@
 ---
 title: My title
+description: Description of my first post!
 tags:
 - python
 - llama
