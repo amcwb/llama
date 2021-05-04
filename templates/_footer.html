@@ -18,19 +18,9 @@
 -->
 
 <style>
-.notice-container {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .notice {
     position: relative;
-    padding: 20px;
-    margin: 0 0 16px 0;
+    padding: 0 0 30px 0;
     min-height: initial;
     width: fit-content;
 }
@@ -40,12 +30,10 @@
 }
 </style>
 
-<div class="notice-container">
-    <div class="notice">
-        <p>
-            <img src="{{ 'img/logo.svg' | static }}" width="40px" style="vertical-align: middle; padding-right: 10px;">
-            Created with Llama
-            <code>{{ site['llama-version'] }} (built at {{ "now" | date: site.config.dateformat }})</code>
-        </p>
-    </div>
+<div class="u-center u-no-shadow">
+    <p class="content notice">
+        <img src="{{ 'img/logo.svg' | static }}" width="40px" style="vertical-align: middle; padding-right: 10px;">
+        Created with Llama
+        <code>{{ site['llama-version'] }} (built at {{ "now" | date: site.config.dateformat }})</code>
+    </p>
 </div>

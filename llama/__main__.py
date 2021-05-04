@@ -53,6 +53,7 @@ if __name__ == "__main__":
     if pages_config and pages_config.get("active", True):
         metadata_renderer = MetadataRenderer("html", {
             "index": Renderer("html", env.get_template("index.html")),
+            "404": Renderer("html", env.get_template("404.html")),
         }, default="index")
 
         pages_handler = PostHandler()
