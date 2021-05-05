@@ -24,16 +24,13 @@ from llama.site import Site
 
 
 class Renderer:
-    def __init__(self, extension: str, template: BoundTemplate, priority: int = 1, preprocessors=None, postprocessors=None):
+    def __init__(self, ll: "Llama", extension: str, template: BoundTemplate, priority: int = 1, preprocessors=None, postprocessors=None):
+        self.ll = ll
         self.priority = priority
         self.template = template
         self.extension = extension
         self.preprocessors = preprocessors or []
         self.postprocessors = postprocessors or []
-        self.site = None
-
-    def set_site(self, site: Site):
-        self.site = site
 
     def run_preproc(self, content: str) -> str:
         """
@@ -76,24 +73,25 @@ class Renderer:
     def get_page_data(self, content: str):
         return frontmatter.loads(content)
 
-    def render(self, page_data: frontmatter.Post, extras=["fenced-code-blocks"]):
-        content = self.run_preproc(page_data.content)
+    def render(self, page_data: dict, extras=["fenced-code-blocks"]):
+        content = self.run_preproc(page_data['content'])
 
         content = markdown2.markdown(content, extras=extras)
 
         content = self.run_postproc(content)
 
         return self.template.render(page={
-            "content": content,
-            **page_data.metadata
-        }, site=self.site.to_dict())
+            **page_data,
+            "content": content
+        }, site=self.ll.site.to_dict())
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} template={self.template} extension='{self.extension}' preproc={len(self.preprocessors)} postproc={len(self.postprocessors)}>"
 
 
 class MetadataRenderer(Renderer):
-    def __init__(self, extension: str, renderers: Dict[str, Renderer], default: str, priority: int = 1):
+    def __init__(self, ll: "Llama", extension: str, renderers: Dict[str, Renderer], default: str, priority: int = 1):
+        self.ll = ll
         self.extension = extension
         self.renderers = renderers
         self.default = default
@@ -101,33 +99,14 @@ class MetadataRenderer(Renderer):
 
         self.site = None
 
-    def set_site(self, site: Site):
-        super().set_site(site)
-
-        for renderer in self.renderers.values():
-            renderer.set_site(self.site)
-
-    def get_page_data(self, content: str):
-        return frontmatter.loads(content)
-
-    def render(self, page_data: frontmatter.Post, extras=["fenced-code-blocks"]):
+    def render(self, page_data: dict, extras=["fenced-code-blocks"]):
         # For metadata renderers, the metadata is extracted seperately
-        renderer = self.renderers.get(page_data.metadata.get("type", self.default))
+        renderer: Renderer = self.renderers.get(page_data.get("type"))
 
         if not renderer:
-            raise KeyError("Unknown type {}".format(page_data.metadata.get("type")))
+            raise KeyError("Unknown type {}".format(page_data.get("type")))
 
-        content = renderer.run_preproc(page_data.content)
-
-        content = markdown2.markdown(
-            content, extras=extras)
-
-        content = renderer.run_postproc(content)
-
-        return renderer.template.render(page={
-            "content": content,
-            **page_data.metadata
-        }, site=self.site.to_dict())
+        return renderer.render(page_data, extras=extras)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} extension='{self.extension}' renderers={self.renderers}>"

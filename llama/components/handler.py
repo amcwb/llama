@@ -21,106 +21,159 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 from frontmatter import Post
+import frontmatter
 from llama.components.renderer import Renderer
 from llama.site import Site
 
 
 class Handler:
-    def __init__(self, priority: int = 1) -> None:
-        self.site = None
-        self.priority = priority
+    def __init__(self, ll: "Llama", source_dir: str, target_dir: str, renderers: list = None, index_key: str = None) -> None:
+        self.source_dir = source_dir
+        self.target_dir = target_dir
+        self.renderers = renderers or []
 
-    def set_site(self, site: Site):
-       self.site = site 
+        self.preindexhooks = []
+        self.postindexhooks = []
+        self.prerenderhooks = []
+        self.postrenderhooks = []
 
-    def build_from(self, source_dir: str, target_dir: str, ignore_unknown: bool = False):
+        self.index = []
+        self.index_key = index_key or "misc"
+        self.ll: "Llama" = ll
+
+    def preindex(self, method: Callable) -> Callable:
         """
-        Build from a source directory to a target directory
+        Add a preindex hook
 
         Parameters
         ----------
-        source_dir : str
-            The source directory
-        target_dir : str
-            The target directory
-        ignore_unknown : bool
-            Whether to ignore unknown files
+        method : Callable
+            The method to run
+
+        Returns
+        -------
+        Callable
+            The method provided
+        """
+        self.preindexhooks.append(method)
+
+        return method
+
+    def postindex(self, method: Callable) -> Callable:
+        """
+        Add a postindex hook
+
+        Parameters
+        ----------
+        method : Callable
+            The method to run
+
+        Returns
+        -------
+        Callable
+            The method provided
+        """
+        self.postindexhooks.append(method)
+
+        return method
+
+    def _pre_index(self):
+        """
+        Run preindex hooks
+        """
+        for prehook in self.preindexhooks:
+            prehook(self)
+
+    def _post_index(self):
+        """
+        Run postindex hooks
+        """
+        for posthook in self.postindexhooks:
+            posthook(self)
+
+    def prerender(self, method: Callable) -> Callable:
+        """
+        Add a prerender hook
+
+        Parameters
+        ----------
+        method : Callable
+            The method to run
+
+        Returns
+        -------
+        Callable
+            The method provided
+        """
+        self.preindexhooks.append(method)
+
+        return method
+
+    def postrender(self, method: Callable) -> Callable:
+        """
+        Add a postrender hook
+
+        Parameters
+        ----------
+        method : Callable
+            The method to run
+
+        Returns
+        -------
+        Callable
+            The method provided
+        """
+        self.postrenderhooks.append(method)
+
+        return method
+
+    def _pre_render(self):
+        """
+        Run prerender hooks
+        """
+        for prehook in self.prerenderhooks:
+            prehook(self)
+
+    def _post_render(self):
+        """
+        Run postrender hooks
+        """
+        for posthook in self.postrenderhooks:
+            posthook(self)
+
+    def run_index(self):
+        """
+        Index the files and their information
+        """
+        self._pre_index()
+
+        self.index = []
+        for dir_path, dirnames, filenames in os.walk(self.source_dir):
+            for filename in filenames:
+                current_dir = Path(dir_path)
+                target = Path(self.target_dir) / \
+                    current_dir.relative_to(self.source_dir)
+
+                renderer = self.get_renderer(filename)
+                target_filename = (filename.split(".", 1)[0] + '.' + renderer.extension)
+                self.index.append({
+                    '_i': {
+                        'filename': filename,
+                        'dir': current_dir,
+                        'target': target,
+                        'renderer': renderer
+                    },
+                    'url': self.ll.site.build_url(Path(target).relative_to(Path(self.ll.target_dir)), target_filename),
+                    **self.get_page_data((current_dir / filename).read_bytes())
+                })
+
+        self._post_index()
+
+    def run_render(self):
+        """
+        Render the files and their information
         """
         raise NotImplementedError
-
-
-class StaticHandler(Handler):
-    def __init__(self, priority: int = 1) -> None:
-        super().__init__(priority=priority)
-
-    def build_from(self, source_dir: str, target_dir: str, _ignore_unknown: bool = False):
-        """
-        Build from a source directory to a target directory
-
-        Parameters
-        ----------
-        source_dir : str
-            The source directory
-        target_dir : str
-            The target directory
-        """
-        for dir_path, dirnames, filenames in os.walk(source_dir):
-            for filename in filenames:
-                source = Path(dir_path) / filename
-                target = Path(target_dir) / Path(source.parent).relative_to(source_dir) / filename
-                target.parent.mkdir(parents=True, exist_ok=True)
-                with open(target, "wb+") as file:
-                    file.write(open(source, "rb").read())
-
-
-class PostHandler(Handler):
-    @staticmethod
-    def default_indexer(index: str):
-        def _default_indexer(site: Site, data: Post, target: str):
-            site.index[index].append({
-                "url": site.build_url(Path(target).relative_to(Path(site.config.get("llama-target")))),
-                **data.to_dict()
-            })
-        
-        return _default_indexer
-
-    def __init__(self, priority: int = 1, renderers: list = None, indexer = None, preprocessors=None, postprocessors=None):
-        super().__init__(priority=priority)
-        self.renderers = []
-        self.preprocessors = preprocessors or []
-        self.postprocessors = postprocessors or []
-
-        if renderers is not None:
-            for renderer in renderers:
-                self.set_renderer(*renderer)
-        
-        if indexer is None:
-            self.indexer = lambda *_: None
-        elif isinstance(indexer, str):
-            self.indexer = PostHandler.default_indexer(indexer)
-        else:
-            self.indexer = indexer
-
-    
-    def run_preproc(self) -> str:
-        """
-        Run preprocessing code on the handler.
-        """
-        for preproc in self.preprocessors:
-            preproc(self)
-
-    def run_postproc(self) -> str:
-        """
-        Run postprocessing code on the handler.
-        """
-        for postproc in self.postprocessors:
-            postproc(self)
-
-    def set_site(self, site: Site):
-        super().set_site(site)
-
-        for _pred, renderer in self.renderers:
-            renderer.set_site(site)
 
     def set_renderer(self, pred_or_ext: Union[str, Callable[[str], bool]], renderer: Renderer):
         """
@@ -140,7 +193,6 @@ class PostHandler(Handler):
                 "." + extension)
 
         self.renderers.append([pred_or_ext, renderer])
-        renderer.set_site(self.site)
 
     def get_renderer(self, filename: str) -> Optional[Renderer]:
         """
@@ -162,79 +214,85 @@ class PostHandler(Handler):
 
         return None
 
-    def build(self, data: Post, target_dir: str, renderer: Renderer):
+    def update_site_index(self):
         """
-        Build a given file into the target directory using the given renderer
-
-        Parameters
-        ----------
-        data : frontmatter.Post
-            The source data
-        target_dir : str
-            The target directory
-        renderer : Renderer
-            The renderer to use
+        Update the site index
         """
-        Path(target_dir).parent.mkdir(parents=True, exist_ok=True)
-        with open(target_dir, "w+") as file:
-            file.write(renderer.render(data))
+        self.ll.site.index[self.index_key] = self.index[:]
 
-    def build_from(self, source_dir: str, target_dir: str, ignore_unknown: bool = False):
+    def get_page_data(self, content: str) -> dict:
+        return frontmatter.loads(content).to_dict()
+
+
+
+class StaticHandler(Handler):
+    def __init__(self, ll: "Llama", source_dir: str, target_dir: str) -> None:
+        super().__init__(ll, source_dir, target_dir)
+
+    def run_index(self):
         """
-        Build from a source directory to a target directory
-
-        Parameters
-        ----------
-        source_dir : str
-            The source directory
-        target_dir : str
-            The target directory
-        ignore_unknown : bool
-            Whether to ignore unknown files
+        Index the files and their information
         """
-        self.run_preproc()
+        self._pre_index()
 
-        targets = []
-        for dir_path, dirnames, filenames in os.walk(source_dir):
+        self.index = []
+        for dir_path, dirnames, filenames in os.walk(self.source_dir):
             for filename in filenames:
-                target = Path(target_dir) / Path(dir_path).relative_to(source_dir)
-                targets.append([filename, dir_path, target, self.get_renderer(filename)])
+                current_dir = Path(dir_path)
+                target = Path(self.target_dir) / \
+                    current_dir.relative_to(self.source_dir)
+
+                self.index.append({
+                    '_i': {
+                        'filename': filename,
+                        'dir': current_dir,
+                        'target': target
+                    },
+                    'url': self.ll.site.build_url(Path(target).relative_to(Path(self.ll.target_dir)), filename),
+                    **self.get_page_data((current_dir / filename).read_bytes())
+                })
+
+        self._post_index()
+
+    def run_render(self):
+        """
+        Render the files and their information
+        """
+        self._pre_render()
+
+        for entry in self.index:
+            target = entry['_i']['target'] / entry['_i']['filename']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "wb+") as file:
+                file.write(entry['content'])
+
+        self._post_render()
+    
+    def get_page_data(self, content: str) -> dict:
+        return {
+            "content": content
+        }
+
+
+class PostHandler(Handler):
+    def __init__(self, ll: "Llama", source_dir: str, target_dir: str, renderers: list = None, index_key: str = None) -> None:
+        super().__init__(ll, source_dir, target_dir, renderers, index_key)
+
+    def run_render(self):
+        """
+        Render the files and their information
+        """
+        self._pre_render()
+
+        for entry in self.index:
+            renderer = entry['_i']['renderer']
+            name, ext = entry['_i']['filename'].split(".", 1)
+            
+            target = entry['_i']['target'] / (name + '.' + renderer.extension)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "w+") as file:
+                file.write(renderer.render(entry))
+
         
-        def _get_priority(s):
-            return s[3].priority
+        self._post_render()
 
-        for filename, dir_path, target, renderer in sorted(targets, key=_get_priority):
-            self.handle_file(filename, dir_path,
-                             target, renderer, ignore_unknown)
-
-        self.run_postproc()
-
-    def handle_file(self, filename: str, dir_path: str, target_dir: str, renderer: Renderer, ignore_unknown: bool = False):
-        """
-        Build a file to the target directory using the appropriate renderer
-
-        Parameters
-        ----------
-        filename : str
-            The filename
-        dir_path : str
-            The directory this file is found in
-        target_dir : str
-            The target directory for this file
-        renderer : Renderer
-            Renderer to use
-        ignore_unknown : bool
-            Whether to ignore unknown extensions
-        """
-        name, ext = filename.split(".", 1)
-        source = Path(dir_path) / filename
-        target = Path(target_dir)
-
-        if renderer:
-            target /= (name + "." + renderer.extension)
-            data = renderer.get_page_data(open(source).read())
-
-            self.indexer(self.site, data, target)
-            self.build(data, target, renderer)
-        elif not ignore_unknown:
-            raise KeyError("Unknown file {}".format(source))

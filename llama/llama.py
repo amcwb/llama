@@ -18,7 +18,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from llama.components.handler import Handler
 from llama.components.renderer import Renderer
@@ -26,78 +26,33 @@ from llama.site import Site
 
 
 class Llama:
-    def __init__(self, site: Site, handlers: Dict[str, Tuple[Handler, str]] = None):
+    def __init__(self, site: Site, source_dir: str, target_dir: str, handlers: List[Handler] = None):
         self.site = site
-        self.handlers = handlers or {}
+        self.source_dir = source_dir
+        self.target_dir = target_dir
+        self.handlers = handlers or []
 
-    def set_handler(self, directory: str, handler: Handler, target: str):
+    def set_handler(self, handler: Handler):
         """
-        Set the handler for a directory
+        Add a handler
 
         Parameters
         ----------
-        directory : str
-            The directory to handle
         handler : Handler
             The handler
-        target : str
-            Target sub-directory
         """
-        self.handlers[directory] = (handler, target)
-        handler.set_site(self.site)
+        self.handlers.append(handler)
 
-    def get_handler(self, directory: str) -> Optional[Handler]:
+    def build(self):
         """
-        Get the handler for a directory
-
-        Parameters
-        ----------
-        directory : str
-            The directory
-
-        Returns
-        -------
-        Handler
-            The handler, or None if it doesn't exist
+        Build from the source directory to the target directory
         """
-        return self.handlers.get(directory, None)
-
-    def build(self, file_dir: str, target_dir: str, renderer: Renderer):
-        """
-        Build a given file into the target directory using the given renderer
-
-        Parameters
-        ----------
-        file_dir : str
-            The source file path
-        target_dir : str
-            The target directory
-        renderer : Renderer
-            The renderer to use
-        """
-        Path(target_dir).parent.mkdir(parents=True, exist_ok=True)
-        with open(target_dir, "w+") as file:
-            file.write(renderer.render(open(file_dir).read()))
-
-    def build_from(self, source_dir: str, target_dir: str, ignore_unknown: bool = False):
-        """
-        Build from a source directory to a target directory
-
-        Parameters
-        ----------
-        source_dir : str
-            The source directory
-        target_dir : str
-            The target directory
-        ignore_unknown : bool
-            Whether to ignore unknown files
-        """
-        targets = []
-        for directory, (handler, target) in self.handlers.items():
-            targets.append([Path(source_dir) / directory, Path(target_dir) / target, handler])
+        for handler in self.handlers:
+            handler.target_dir = Path(self.target_dir) / handler.target_dir
+            handler.source_dir = Path(self.source_dir) / handler.source_dir
+            
+            handler.run_index()
+            handler.update_site_index()
         
-        def _get_priority(s):
-            return s[2].priority
-        
-        for source, target, handler in sorted(targets, key=_get_priority):
-            handler.build_from(source, target, ignore_unknown)
+        for handler in self.handlers:
+            handler.run_render()
